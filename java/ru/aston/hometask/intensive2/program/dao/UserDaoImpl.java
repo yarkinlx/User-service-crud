@@ -17,13 +17,10 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public Optional<User> findById(Long id) {
-        Transaction transaction = null;
         Session session = null;
         try {
             session = HibernateUtil.getSessionFactory().openSession();
-            transaction = session.beginTransaction();
             User user = session.get(User.class, id);
-            transaction.commit();
 
             if (user != null) {
                 logger.info("User found with id: {}", id);
@@ -33,9 +30,6 @@ public class UserDaoImpl implements UserDao {
                 return Optional.empty();
             }
         } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
             logger.error("Error finding user by id: {}", id, e);
             throw new RuntimeException("Error finding user by id", e);
         } finally {
