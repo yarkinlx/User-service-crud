@@ -2,6 +2,8 @@ package ru.aston.hometask.intensive2.program;
 
 import ru.aston.hometask.intensive2.program.dao.UserDao;
 import ru.aston.hometask.intensive2.program.dao.UserDaoImpl;
+import ru.aston.hometask.intensive2.program.service.UserService;
+import ru.aston.hometask.intensive2.program.service.UserServiceImpl;
 import ru.aston.hometask.intensive2.program.model.User;
 import ru.aston.hometask.intensive2.program.util.HibernateUtil;
 import org.apache.logging.log4j.LogManager;
@@ -13,7 +15,10 @@ import java.util.Scanner;
 
 public class Main {
     private static final Logger logger = LogManager.getLogger(Main.class);
+
     private static final UserDao userDao = new UserDaoImpl();
+    private static final UserService userService = new UserServiceImpl(userDao);
+
     private static final Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
@@ -92,21 +97,23 @@ public class Main {
             String email = scanner.nextLine();
 
             System.out.print("Enter age: ");
-            int age = Integer.parseInt(scanner.nextLine());
+            String ageInput = scanner.nextLine();
+            Integer age = null;
 
-            Optional<User> existingUser = userDao.findByEmail(email);
-            if (existingUser.isPresent()) {
-                System.out.println("Error: User with this email already exists!");
-                return;
+            if (!ageInput.trim().isEmpty()) {
+                try {
+                    age = Integer.parseInt(ageInput);
+                } catch (NumberFormatException e) {
+                    System.out.println("Error: Age must be a valid number!");
+                    return;
+                }
             }
 
-            User user = new User(name, email, age);
-            User savedUser = userDao.save(user);
+            User user = userService.createUser(name, email, age);
+            System.out.println("User created successfully: " + user);
 
-            System.out.println("User created successfully: " + savedUser);
-
-        } catch (NumberFormatException e) {
-            System.out.println("Error: Age must be a valid number!");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error creating user: " + e.getMessage());
         }
@@ -118,7 +125,7 @@ public class Main {
             System.out.print("Enter user ID: ");
             Long id = Long.parseLong(scanner.nextLine());
 
-            Optional<User> user = userDao.findById(id);
+            Optional<User> user = userService.getUserById(id);
             if (user.isPresent()) {
                 System.out.println("User found: " + user.get());
             } else {
@@ -127,6 +134,8 @@ public class Main {
 
         } catch (NumberFormatException e) {
             System.out.println("Error: ID must be a valid number!");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error retrieving user: " + e.getMessage());
         }
@@ -135,7 +144,7 @@ public class Main {
     private static void getAllUsers() {
         try {
             System.out.println("\n--- All Users ---");
-            List<User> users = userDao.findAll();
+            List<User> users = userService.getAllUsers();
 
             if (users.isEmpty()) {
                 System.out.println("No users found.");
@@ -154,7 +163,7 @@ public class Main {
             System.out.print("Enter user ID to update: ");
             Long id = Long.parseLong(scanner.nextLine());
 
-            Optional<User> existingUser = userDao.findById(id);
+            Optional<User> existingUser = userService.getUserById(id);
             if (existingUser.isEmpty()) {
                 System.out.println("User not found with ID: " + id);
                 return;
@@ -164,33 +173,30 @@ public class Main {
 
             System.out.print("Enter new name (current: " + user.getName() + "): ");
             String name = scanner.nextLine();
-            if (!name.trim().isEmpty()) {
-                user.setName(name);
-            }
 
             System.out.print("Enter new email (current: " + user.getEmail() + "): ");
             String email = scanner.nextLine();
-            if (!email.trim().isEmpty()) {
-                Optional<User> userWithEmail = userDao.findByEmail(email);
-                if (userWithEmail.isPresent() && !userWithEmail.get().getId().equals(id)) {
-                    System.out.println("Error: Another user with this email already exists!");
-                    return;
-                }
-                user.setEmail(email);
-            }
 
             System.out.print("Enter new age (current: " + user.getAge() + "): ");
             String ageInput = scanner.nextLine();
+            Integer age = null;
+
             if (!ageInput.trim().isEmpty()) {
-                int age = Integer.parseInt(ageInput);
-                user.setAge(age);
+                try {
+                    age = Integer.parseInt(ageInput);
+                } catch (NumberFormatException e) {
+                    System.out.println("Error: Age must be a valid number!");
+                    return;
+                }
             }
 
-            User updatedUser = userDao.update(user);
+            User updatedUser = userService.updateUser(id, name, email, age);
             System.out.println("User updated successfully: " + updatedUser);
 
         } catch (NumberFormatException e) {
-            System.out.println("Error: ID and age must be valid numbers!");
+            System.out.println("Error: ID must be a valid number!");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error updating user: " + e.getMessage());
         }
@@ -202,9 +208,9 @@ public class Main {
             System.out.print("Enter user ID to delete: ");
             Long id = Long.parseLong(scanner.nextLine());
 
-            Optional<User> user = userDao.findById(id);
+            Optional<User> user = userService.getUserById(id);
             if (user.isPresent()) {
-                userDao.delete(id);
+                userService.deleteUser(id);
                 System.out.println("User deleted successfully.");
             } else {
                 System.out.println("User not found with ID: " + id);
@@ -212,6 +218,8 @@ public class Main {
 
         } catch (NumberFormatException e) {
             System.out.println("Error: ID must be a valid number!");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error deleting user: " + e.getMessage());
         }
@@ -223,13 +231,15 @@ public class Main {
             System.out.print("Enter email: ");
             String email = scanner.nextLine();
 
-            Optional<User> user = userDao.findByEmail(email);
+            Optional<User> user = userService.getUserByEmail(email);
             if (user.isPresent()) {
                 System.out.println("User found: " + user.get());
             } else {
                 System.out.println("User not found with email: " + email);
             }
 
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("Error finding user: " + e.getMessage());
         }
