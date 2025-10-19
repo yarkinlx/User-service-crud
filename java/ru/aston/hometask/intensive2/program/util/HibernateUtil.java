@@ -5,7 +5,7 @@ import org.hibernate.cfg.Configuration;
 import ru.aston.hometask.intensive2.program.model.User;
 
 public class HibernateUtil {
-    private static SessionFactory sessionFactory;
+    private static final SessionFactory sessionFactory;
 
     static {
         try {

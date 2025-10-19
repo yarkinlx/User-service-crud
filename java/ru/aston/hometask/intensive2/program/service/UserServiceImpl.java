@@ -1,9 +1,9 @@
 package ru.aston.hometask.intensive2.program.service;
 
-import ru.aston.hometask.intensive2.program.dao.UserDao;
-import ru.aston.hometask.intensive2.program.model.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import ru.aston.hometask.intensive2.program.dao.UserDao;
+import ru.aston.hometask.intensive2.program.model.User;
 
 import java.util.List;
 import java.util.Optional;

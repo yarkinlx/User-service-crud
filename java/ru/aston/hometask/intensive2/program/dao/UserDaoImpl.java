@@ -1,12 +1,12 @@
 package ru.aston.hometask.intensive2.program.dao;
 
-import ru.aston.hometask.intensive2.program.model.User;
-import ru.aston.hometask.intensive2.program.util.HibernateUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.query.Query;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import ru.aston.hometask.intensive2.program.model.User;
+import ru.aston.hometask.intensive2.program.util.HibernateUtil;
 
 import java.util.List;
 import java.util.Optional;
