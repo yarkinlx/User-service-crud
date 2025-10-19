@@ -11,4 +11,5 @@ public interface UserDao {
     User update(User user);
     void delete(Long id);
     Optional<User> findByEmail(String email);
+    boolean isEmailExistsForOtherUser(String email, Long excludeUserId);
 }

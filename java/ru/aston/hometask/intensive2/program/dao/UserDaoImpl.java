@@ -41,20 +41,14 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public List<User> findAll() {
-        Transaction transaction = null;
         Session session = null;
         try {
             session = HibernateUtil.getSessionFactory().openSession();
-            transaction = session.beginTransaction();
             List<User> users = session.createQuery("from User", User.class).list();
-            transaction.commit();
 
             logger.info("Found {} users", users.size());
             return users;
         } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
             logger.error("Error finding all users", e);
             throw new RuntimeException("Error finding all users", e);
         } finally {
@@ -71,13 +65,14 @@ public class UserDaoImpl implements UserDao {
         try {
             session = HibernateUtil.getSessionFactory().openSession();
             transaction = session.beginTransaction();
+
             session.save(user);
             transaction.commit();
 
             logger.info("User saved successfully with id: {}", user.getId());
             return user;
         } catch (Exception e) {
-            if (transaction != null) {
+            if (transaction != null && transaction.isActive()) {
                 transaction.rollback();
             }
             logger.error("Error saving user: {}", user.getEmail(), e);
@@ -96,13 +91,14 @@ public class UserDaoImpl implements UserDao {
         try {
             session = HibernateUtil.getSessionFactory().openSession();
             transaction = session.beginTransaction();
+
             User updatedUser = (User) session.merge(user);
             transaction.commit();
 
             logger.info("User updated successfully with id: {}", updatedUser.getId());
             return updatedUser;
         } catch (Exception e) {
-            if (transaction != null) {
+            if (transaction != null && transaction.isActive()) {
                 transaction.rollback();
             }
             logger.error("Error updating user with id: {}", user.getId(), e);
@@ -121,16 +117,23 @@ public class UserDaoImpl implements UserDao {
         try {
             session = HibernateUtil.getSessionFactory().openSession();
             transaction = session.beginTransaction();
+
             User user = session.get(User.class, id);
             if (user != null) {
                 session.delete(user);
                 logger.info("User deleted successfully with id: {}", id);
             } else {
                 logger.warn("Attempt to delete non-existing user with id: {}", id);
+                throw new IllegalArgumentException("User not found with id: " + id);
             }
             transaction.commit();
+        } catch (IllegalArgumentException e) {
+            if (transaction != null && transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw e;
         } catch (Exception e) {
-            if (transaction != null) {
+            if (transaction != null && transaction.isActive()) {
                 transaction.rollback();
             }
             logger.error("Error deleting user with id: {}", id, e);
@@ -144,15 +147,12 @@ public class UserDaoImpl implements UserDao {
 
     @Override
     public Optional<User> findByEmail(String email) {
-        Transaction transaction = null;
         Session session = null;
         try {
             session = HibernateUtil.getSessionFactory().openSession();
-            transaction = session.beginTransaction();
             Query<User> query = session.createQuery("from User where email = :email", User.class);
             query.setParameter("email", email);
             User user = query.uniqueResult();
-            transaction.commit();
 
             if (user != null) {
                 logger.info("User found with email: {}", email);
@@ -162,11 +162,34 @@ public class UserDaoImpl implements UserDao {
                 return Optional.empty();
             }
         } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
             logger.error("Error finding user by email: {}", email, e);
             throw new RuntimeException("Error finding user by email", e);
+        } finally {
+            if (session != null) {
+                session.close();
+            }
+        }
+    }
+
+    @Override
+    public boolean isEmailExistsForOtherUser(String email, Long excludeUserId) {
+        Session session = null;
+        try {
+            session = HibernateUtil.getSessionFactory().openSession();
+            Query<Long> query = session.createQuery(
+                    "select count(u) from User u where u.email = :email and u.id != :excludeId",
+                    Long.class
+            );
+            query.setParameter("email", email);
+            query.setParameter("excludeId", excludeUserId);
+            Long count = query.uniqueResult();
+
+            boolean exists = count != null && count > 0;
+            logger.info("Email {} exists for other users: {}", email, exists);
+            return exists;
+        } catch (Exception e) {
+            logger.error("Error checking email existence: {}", email, e);
+            throw new RuntimeException("Error checking email existence", e);
         } finally {
             if (session != null) {
                 session.close();
