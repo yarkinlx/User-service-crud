@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!-- Database connection settings - будут переопределены системными свойствами -->
+        <property name="hibernate.connection.driver_class">org.postgresql.Driver</property>
+        <property name="hibernate.connection.url">jdbc:postgresql://localhost:5432/testdb</property>
+        <property name="hibernate.connection.username">test</property>
+        <property name="hibernate.connection.password">test</property>
+
+        <!-- JDBC connection pool settings -->
+        <property name="hibernate.connection.pool_size">5</property>
+
+        <!-- SQL dialect -->
+        <property name="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</property>
+
+        <!-- Echo all executed SQL to stdout -->
+        <property name="hibernate.show_sql">false</property>
+        <property name="hibernate.format_sql">false</property>
+
+        <!-- Drop and re-create the database schema on startup -->
+        <property name="hibernate.hbm2ddl.auto">create-drop</property>
+
+        <!-- Current session context -->
+        <property name="hibernate.current_session_context_class">thread</property>
+
+        <!-- Enable batch operations -->
+        <property name="hibernate.jdbc.batch_size">20</property>
+        <property name="hibernate.order_inserts">true</property>
+        <property name="hibernate.order_updates">true</property>
+
+        <!-- Show SQL in tests (можно включить для отладки) -->
+        <property name="hibernate.show_sql">false</property>
+        <property name="hibernate.format_sql">false</property>
+        <property name="hibernate.use_sql_comments">false</property>
+    </session-factory>
+</hibernate-configuration>
